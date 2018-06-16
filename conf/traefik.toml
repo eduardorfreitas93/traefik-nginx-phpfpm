@@ -1,0 +1,44 @@
+################################################################
+# Global configuration
+################################################################
+
+defaultEntryPoints = ["https", "http"]
+
+################################################################
+# Entrypoints configuration
+################################################################
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+    [entryPoints.https.tls]
+      [[entryPoints.https.tls.certificates]]
+        certFile = "/certs/wekan1.crt"
+        keyFile = "/certs/wekan1.key"
+
+################################################################
+# API and dashboard configuration
+################################################################
+
+[api]
+
+################################################################
+# Docker configuration backend
+################################################################
+
+[docker]
+  domain = "deved"
+  watch = true
+  swarmMode = true
+
+#[acme]
+#  email = "test@traefik.io"
+#  storage = "/etc/traefik/acme/acme.json"
+#  entryPoint = "https"
+#  onHostRule = true
+#  [acme.httpChallenge]
+#  entryPoint = "http"

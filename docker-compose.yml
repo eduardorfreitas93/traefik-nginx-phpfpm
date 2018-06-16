@@ -1,0 +1,116 @@
+version: '3.6'
+services:
+  traefik:
+    image: traefik
+    ports:
+      - 80:80
+      - 443:443
+      # - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /data/traefik/traefik.toml:/etc/traefik/traefik.toml
+      # - /data/traefik/acme.json:/etc/traefik/acme/acme.json
+      - /data/certs/:/certs/
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.port=8080"
+        - "traefik.frontend.rule=Host:lb.deved"
+        - "traefik.docker.network=proxy"
+        - "traefik.enable=true"
+        - "traefik.frontend.headers.SSLRedirect=true"
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+         - node.role == manager
+    networks:
+       - proxy
+
+  web:
+    image: nginx:latest
+    volumes:
+      - sshvhost:/etc/nginx/conf.d/
+      - sshproject:/var/www/html
+      - logs-web:/var/log/nginx
+    depends_on:
+      - php
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.port=80"
+        - "traefik.frontend.rule=Host:api.deved"
+        - "traefik.docker.network=proxy"
+        - "traefik.enable=true"
+        - "traefik.frontend.passHostHeader=true"
+        - "traefik.frontend.headers.SSLRedirect=true"
+      restart_policy:
+        condition: on-failure
+    networks:
+      - internal
+      - proxy
+
+  php:
+    image: edu/php7.1-fpm
+    volumes:
+      - sshproject:/var/www/html
+      - logs-php-fpm:/var/log/php-fpm
+    depends_on:
+      - postgres
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.enable=false"
+      restart_policy:
+        condition: on-failure
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:9.5
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: 123
+      POSTGRES_USER: admin
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.enable=false"
+      restart_policy:
+        condition: on-failure
+    networks:
+      - internal
+
+volumes:
+  logs-php-fpm:
+  logs-web:
+  pg-data:
+  sshproject:
+    driver: vieux/sshfs
+    driver_opts:
+      sshcmd: docker@192.168.99.100:/data/html
+      password: tcuser
+      allow_other: ""
+  sshvhost:
+    driver: vieux/sshfs
+    driver_opts:
+      sshcmd: docker@192.168.99.100:/data/vhost
+      password: tcuser
+      allow_other: ""
+
+networks:
+  proxy:
+    external: true
+    name: proxy
+  internal:
+    name: internal
