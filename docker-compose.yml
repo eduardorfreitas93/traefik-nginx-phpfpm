@@ -11,15 +11,15 @@ services:
       - /data/traefik/traefik.toml:/etc/traefik/traefik.toml
       # - /data/traefik/acme.json:/etc/traefik/acme/acme.json
       - /data/certs/:/certs/
-    deploy:
-      mode: replicated
-      replicas: 1
-      labels:
+    labels:
         - "traefik.port=8080"
         - "traefik.frontend.rule=Host:lb.deved"
         - "traefik.docker.network=proxy"
         - "traefik.enable=true"
         - "traefik.frontend.headers.SSLRedirect=true"
+    deploy:
+      mode: replicated
+      replicas: 1
       update_config:
         parallelism: 2
         delay: 10s
@@ -39,16 +39,16 @@ services:
       - logs-web:/var/log/nginx
     depends_on:
       - php
-    deploy:
-      mode: replicated
-      replicas: 1
-      labels:
+    labels:
         - "traefik.port=80"
         - "traefik.frontend.rule=Host:api.deved"
         - "traefik.docker.network=proxy"
         - "traefik.enable=true"
         - "traefik.frontend.passHostHeader=true"
         - "traefik.frontend.headers.SSLRedirect=true"
+    deploy:
+      mode: replicated
+      replicas: 1
       restart_policy:
         condition: on-failure
     networks:
@@ -62,11 +62,11 @@ services:
       - logs-php-fpm:/var/log/php-fpm
     depends_on:
       - postgres
+    labels:
+        - "traefik.enable=false"
     deploy:
       mode: replicated
       replicas: 1
-      labels:
-        - "traefik.enable=false"
       restart_policy:
         condition: on-failure
     networks:
@@ -81,11 +81,11 @@ services:
       POSTGRES_USER: admin
     volumes:
       - pg-data:/var/lib/postgresql/data
+    labels:
+        - "traefik.enable=false"
     deploy:
       mode: replicated
       replicas: 1
-      labels:
-        - "traefik.enable=false"
       restart_policy:
         condition: on-failure
     networks:
